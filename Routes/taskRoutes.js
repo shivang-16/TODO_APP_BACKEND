@@ -10,6 +10,6 @@ import { isAuthenticated } from "../middleware/auth.js";
 const router = express.Router();
 
 router.post("/create", isAuthenticated, createTask);
-router.post("/my", isAuthenticated, getMyTask);
+router.get("/my", isAuthenticated, getMyTask);
 router.route("/:id").patch(editTask).delete(deleteTask);
 export default router;
