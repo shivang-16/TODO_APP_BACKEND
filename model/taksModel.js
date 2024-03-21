@@ -2,14 +2,21 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
+//adding validation in due_date
+const validateDueDate = (value) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); 
+  return value >= today;
+};
+
 const taskSchema = new Schema({
   title: {
     type: String,
-    require: true,
+    required: true,
   },
   description: {
     type: String,
-    require: true,
+    required: true, 
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -18,12 +25,31 @@ const taskSchema = new Schema({
   },
   tag: {
     type: String,
-    require: true,
   },
+  due_date: {
+    type: Date,
+    required: true, 
+    validate: [validateDueDate, 'due_date cannot be before today’s date'], 
+  },
+  status: {
+    type: String,
+    enum: ['In Progress', 'Done', 'Todo'], 
+    default: 'Todo'
+  },
+  priority: {
+    type: Number,
+  },
+  subTasks: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubTask",
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-export const Task = mongoose.model("Task", taskSchema);
+// Compile model from schema
+export const Task = mongoose.model('Task', taskSchema);

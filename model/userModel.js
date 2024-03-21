@@ -5,16 +5,25 @@ const { Schema } = mongoose;
 const userSchema = new Schema({
   name: {
     type: String,
-    require: true,
+    required: true, 
   },
   email: {
     type: String,
-    require: true,
+    required: true, 
     unique: true,
   },
+  phone: {
+    type: Number, 
+    required: true, 
+    unique: true,
+ }, 
   password: {
     type: String,
-    require: true,
+    required: true, 
+  },
+  priority: {
+    type: Number,
+    enum: [0, 1, 2], 
   },
   createdAt: {
     type: Date,
