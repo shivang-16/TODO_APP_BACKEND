@@ -1,4 +1,5 @@
 import express from "express";
+import wrapAsync from "../utils/wrapAsync.js";
 import {
   createTask,
   getMyTask,
@@ -9,7 +10,11 @@ import { isAuthenticated } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/create", isAuthenticated, createTask);
-router.get("/my", isAuthenticated, getMyTask);
-router.route("/:id").patch(editTask).delete(deleteTask);
+router.post("/create", isAuthenticated, wrapAsync(createTask));
+router.get("/my", isAuthenticated, wrapAsync(getMyTask));
+router
+  .route("/:id")
+  .patch(isAuthenticated, wrapAsync(editTask))
+  .delete(isAuthenticated, wrapAsync(deleteTask));
+
 export default router;
