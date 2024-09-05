@@ -2,69 +2,53 @@ import { User } from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import { setCookie } from "../utils/jwt.js";
 import sendCall from "../utils/twilio.js";
-import cron from 'node-cron'
+import cron from "node-cron";
 import { Task } from "../model/taksModel.js";
 import moment from "moment";
 
 export const register = async (req, res) => {
-  try {
-    const { name, email, password, phone } = req.body;
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    user = await User.create({
-      name,
-      email,
-      phone,
-      password: hashedPassword,
-    });
-
-    setCookie(res, user, "Registed Successfully", 201);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
+  const { name, email, password, phone } = req.body;
+  let user = await User.findOne({ email });
+  if (user) {
+    return res.status(400).json({
       success: false,
-      message: error.message,
+      message: "User already exists",
     });
   }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  user = await User.create({
+    name,
+    email,
+    phone,
+    password: hashedPassword,
+  });
+
+  setCookie(res, user, "Registered Successfully", 201);
 };
 
 export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email }).select("+password");
+  const { email, password } = req.body;
+  const user = await User.findOne({ email }).select("+password");
 
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Email",
-      });
-    }
-
-    const isMatched = await bcrypt.compare(password, user.password);
-
-    if (!isMatched) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Password",
-      });
-    }
-
-    setCookie(res, user, "Login Successfully", 200);
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
+  if (!user) {
+    return res.status(400).json({
       success: false,
-      message: error.message,
+      message: "Invalid Email",
     });
   }
+
+  const isMatched = await bcrypt.compare(password, user.password);
+
+  if (!isMatched) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Password",
+    });
+  }
+
+  setCookie(res, user, "Login Successfully", 200);
 };
 
 export const logout = (req, res) => {
@@ -77,29 +61,22 @@ export const logout = (req, res) => {
     })
     .json({
       success: true,
-      message: "Logout Sucessfully",
+      message: "Logout Successfully",
     });
 };
 
 export const getMyProfile = async (req, res) => {
-  try {
-    let user = await User.findById(req.user);
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-    res.status(200).json({
-      success: true,
-      user,
-    });
-  } catch (error) {
-    return res.status(500).json({
+  let user = await User.findById(req.user);
+  if (!user) {
+    return res.status(400).json({
       success: false,
-      message: error.message,
+      message: "User not found",
     });
   }
+  res.status(200).json({
+    success: true,
+    user,
+  });
 };
 
 export const deleteUser = async (req, res) => {
@@ -121,81 +98,77 @@ export const deleteUser = async (req, res) => {
     })
     .json({
       success: true,
-      message: "Account Deleted Sucessfully",
+      message: "Account Deleted Successfully",
     });
 };
 
-cron.schedule('* * * * *', async () => {
-  try {
-    const users = await User.find();
+cron.schedule("* * * * *", async () => {
+  const users = await User.find();
 
-    for (const user of users) {
-      let priority = 0;
+  for (const user of users) {
+    let priority = 0;
 
-      const userTasks = await Task.find({user: user._id});
+    const userTasks = await Task.find({ user: user._id });
 
-      let closestDueDate = null;
-      for (const task of userTasks) {
-        const dueDate = moment(task.due_date);
-        const today = moment().startOf('day');
+    let closestDueDate = null;
+    for (const task of userTasks) {
+      const dueDate = moment(task.due_date);
+      const today = moment().startOf("day");
 
-        if (dueDate.isSameOrBefore(today) && (closestDueDate === null || dueDate.isAfter(closestDueDate))) {
-          closestDueDate = dueDate;
-        }
+      if (
+        dueDate.isSameOrBefore(today) &&
+        (closestDueDate === null || dueDate.isAfter(closestDueDate))
+      ) {
+        closestDueDate = dueDate;
       }
-
-      // Set priority based on the closest due date
-      if (closestDueDate !== null) {
-        const daysUntilDue = closestDueDate.diff(moment().startOf('day'), 'days');
-        if (daysUntilDue <= 0) {
-          priority = 0;
-        } else if (daysUntilDue <= 1) {
-          priority = 1;
-        } else if (daysUntilDue <= 2) {
-          priority = 2;
-        } else {
-          priority = 3;
-        }
-      }
-
-      user.priority = priority;
-      await user.save();
     }
-  } catch (error) {
-    console.error('Error updating user priorities:', error);
+
+    // Set priority based on the closest due date
+    if (closestDueDate !== null) {
+      const daysUntilDue = closestDueDate.diff(moment().startOf("day"), "days");
+      if (daysUntilDue <= 0) {
+        priority = 0;
+      } else if (daysUntilDue <= 1) {
+        priority = 1;
+      } else if (daysUntilDue <= 2) {
+        priority = 2;
+      } else {
+        priority = 3;
+      }
+    }
+
+    user.priority = priority;
+    await user.save();
   }
 });
 
+cron.schedule("0 0 * * *", async () => {
+  const overdueTasks = await Task.find({
+    due_date: { $lt: new Date() },
+  }).populate("user");
 
-cron.schedule('0 0 * * *', async () => {
-  try {
-    const overdueTasks = await Task.find({ due_date: { $lt: new Date() } }).populate('user');
+  // Sort tasks by user priority
+  overdueTasks.sort((a, b) => a.user.priority - b.user.priority);
 
-    // Sort tasks by user priority
-    overdueTasks.sort((a, b) => a.user.priority - b.user.priority);
+  const calledUsers = new Map();
 
-    const calledUsers = new Map();
+  for (const task of overdueTasks) {
+    const userId = task.user;
 
-    for (const task of overdueTasks) {
-      const userId = task.user;
+    const user = await User.findById(userId);
 
-      const user = await User.findById(userId)
-
-      if (!calledUsers.has(userId)) {
+    if (!calledUsers.has(userId)) {
       try {
-        console.log("calling user....")
-        await sendCall(user?.name, user?.phone)
-        console.log("calling success....")
+        console.log("Calling user...");
+        await sendCall(user?.name, user?.phone);
+        console.log("Call success...");
       } catch (error) {
-        console.log("voice call error:", error)
+        console.log("Voice call error:", error);
       }
-     
-        calledUsers.set(userId, true);
 
-        break;
-      }
+      calledUsers.set(userId, true);
+
+      break;
     }
-  } catch (error) {
-    console.error('Error making voice call:', error);
   }
 });
